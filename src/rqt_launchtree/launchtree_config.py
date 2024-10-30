@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-import rospy
-from roslaunch.config import ROSLaunchConfig
-from roslaunch.core import Param
+import rclpy
+from launch import LaunchDescription
+from launch_ros.substitutions import Parameter
 
 class LaunchtreeArg(object):
 	def __init__(self, name, default=None, value=None, doc=None):
@@ -22,7 +22,7 @@ class LaunchtreeRemap(object):
 		self.from_topic = from_topic
 		self.to_topic = to_topic
 
-class LaunchtreeParam(Param):
+class LaunchtreeParam(Parameter):
 	def __init__(self, key, value, command):
 		super(LaunchtreeParam, self).__init__(key, value)
 		self.command = command
@@ -32,7 +32,7 @@ class LaunchtreeRosparam(object):
 		self.command = command
 		self.filename = filename
 
-class LaunchtreeConfig(ROSLaunchConfig):
+class LaunchtreeConfig(LaunchDescription):
 
 	def __init__(self):
 		super(LaunchtreeConfig, self).__init__()

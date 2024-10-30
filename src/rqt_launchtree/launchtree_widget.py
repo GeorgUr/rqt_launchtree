@@ -5,19 +5,23 @@ import yaml
 import threading
 import itertools
 
-import rospy
-import rospkg
-import roslaunch
+from ament_index_python.packages import get_packages_with_prefixes, get_package_share_directory
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+import launch_ros
+from launch_ros.actions import Node
+from launch_ros.substitutions import Parameter
+
 
 from rqt_launchtree.launchtree_loader import LaunchtreeLoader
 from rqt_launchtree.launchtree_config import LaunchtreeConfig, LaunchtreeArg, LaunchtreeRemap, LaunchtreeParam, LaunchtreeRosparam
 
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import Qt, Signal
-from python_qt_binding.QtGui import QFileDialog, QWidget, QIcon, QTreeWidgetItem, QColor
+from python_qt_binding.QtWidgets import QFileDialog, QWidget, QTreeWidgetItem
+from python_qt_binding.QtGui import QIcon, QColor
 
 class LaunchtreeEntryItem(QTreeWidgetItem):
-	_type_order = [dict, roslaunch.core.Node, LaunchtreeRosparam, roslaunch.core.Param, LaunchtreeRemap, LaunchtreeArg, object]
+	_type_order = [dict, launch_ros.actions.Node, LaunchtreeRosparam, launch_ros.substitutions.Parameter, LaunchtreeRemap, LaunchtreeArg, object]
 	#inconsistent = False
 	def __init__(self, *args, **kw ):
 		super(LaunchtreeEntryItem, self).__init__(*args, **kw)
@@ -40,9 +44,9 @@ class LaunchtreeWidget(QWidget):
 	def __init__(self, context):
 		super(LaunchtreeWidget, self).__init__()
 
-		self._rp = rospkg.RosPack()
-		self._rp_package_list = self._rp.list()
-		res_folder = os.path.join(self._rp.get_path('rqt_launchtree'), 'resource')
+		self._rp = get_packages_with_prefixes()
+		self._rp_package_list = list(self._rp.keys())
+		res_folder = os.path.join(get_package_share_directory('rqt_launchtree'), 'resource')
 		ui_file = os.path.join(res_folder, 'launchtree_widget.ui')
 		loadUi(ui_file, self)
 
@@ -106,10 +110,10 @@ class LaunchtreeWidget(QWidget):
 		self.properties_content.setCurrentIndex(0)
 		self.main_view.setCurrentIndex(0)
 		filename = os.path.join(
-			self._rp.get_path(self.package_select.currentText()),
+			get_package_share_directory(self.package_select.currentText()),
 			self.launchfile_select.currentText()
 		)
-		launchargs = roslaunch.substitution_args.resolve_args(self.args_input.text()).split(' ')
+		launchargs = self.args_input.text().strip().split(' ')
 		if os.path.isfile(filename):
 			self.progress_bar.setRange(0,0)
 			self._load_thread = threading.Thread(target=self._load_launch_items, args=[filename, launchargs])
@@ -133,7 +137,6 @@ class LaunchtreeWidget(QWidget):
 				help_msg = 'You can pass args to the root launch file by specifying them in the "args" input field, for example "arg_key:=arg_value".'
 			self.display_load_error.emit(error_msg, help_msg)
 		self.update_launch_view.emit(items)
-
 
 	def display_config_tree(self, config_tree):
 		items = list()
@@ -181,7 +184,7 @@ class LaunchtreeWidget(QWidget):
 
 	def update_package_list(self):
 		self._package_list = sorted(
-			filter(lambda p: len(self._get_launch_files(self._rp.get_path(p)))>0,
+			filter(lambda package: len(self._get_launch_files(get_package_share_directory(package)))>0,
 				self._rp_package_list
 			)
 		)
@@ -191,18 +194,18 @@ class LaunchtreeWidget(QWidget):
 
 	def update_launchfiles(self, idx):
 		package = self.package_select.itemText(idx)
-		folder = self._rp.get_path(package)
+		folder = get_package_share_directory(package)
 		launchfiles = self._get_launch_files(folder)
 		self.launchfile_select.clear()
 		self.launchfile_select.addItems(launchfiles)
 
 	def _get_launch_files(self, path):
 		return sorted(
-			itertools.imap(lambda p: p.replace(path + '/', ''),
-				itertools.ifilter(self._is_launch_file,
+			map(lambda p: p.replace(path + '/', ''),
+				filter(self._is_launch_file,
 					itertools.chain.from_iterable(
-						itertools.imap(lambda f:
-							map(lambda n: os.path.join(f[0], n), f[2]),
+						map(lambda f:
+							[os.path.join(f[0], n) for n in f[2]],
 							os.walk(path)
 						)
 					)
@@ -212,8 +215,7 @@ class LaunchtreeWidget(QWidget):
 
 	def _is_launch_file(self, path):
 		if not os.path.isfile(path): return False
-		(root, ext) = os.path.splitext(path)
-		if ext != '.launch': return False
+		if not path.endswith(".launch.py"): return False
 		return True
 
 	def launch_entry_changed(self, current, previous):
@@ -236,7 +238,7 @@ class LaunchtreeWidget(QWidget):
 			else:
 				self.param_value_long.setPlainText(str(data.value))
 				self.param_value_panel.setCurrentIndex(1)
-		elif isinstance(data, roslaunch.core.Node):
+		elif isinstance(data, launch_ros.actions.Node):
 			self.properties_content.setCurrentIndex(2)
 			self.node_package.setText(data.package)
 			self.node_type.setText(data.type)
@@ -344,7 +346,7 @@ class LaunchtreeWidget(QWidget):
 
 	def _root_open_clicked(self):
 		filename = os.path.join(
-			self._rp.get_path(self.package_select.currentText()),
+			get_package_share_directory(self.package_select.currentText()),
 			self.launchfile_select.currentText()
 		)
 		thread = threading.Thread(target=os.system, args=['%s %s' % (self.editor, filename)])

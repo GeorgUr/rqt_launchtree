@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 import sys
 
-from roslaunch.xmlloader import XmlLoader, loader
-from rosgraph.names import get_ros_namespace
+from launch import LaunchDescription
+#from rosgraph.names import get_ros_namespace
 
 from rqt_launchtree.launchtree_context import LaunchtreeContext
 
-class LaunchtreeLoader(XmlLoader):
+class LaunchtreeLoader(LaunchDescription):
 
 	def _include_tag(self, tag, context, ros_config, default_machine, is_core, verbose):
 		inc_filename = self.resolve_args(tag.attributes['file'].value, context)
@@ -51,10 +51,10 @@ class LaunchtreeLoader(XmlLoader):
 			argv = sys.argv
 
 		self._launch_tag(launch, ros_config, filename)
-		self.root_context = LaunchtreeContext(get_ros_namespace(), filename, config=ros_config)
+		#self.root_context = LaunchtreeContext(get_ros_namespace(), filename, config=ros_config)
 		loader.load_sysargs_into_context(self.root_context, argv)
 
 		if len(launch.getElementsByTagName('master')) > 0:
-			print "WARNING: ignoring defunct <master /> tag"
+			print("WARNING: ignoring defunct <master /> tag")
 		self._recurse_load(ros_config, launch.childNodes, self.root_context, None, is_core, verbose)
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-import rospy
+import rclpy
 from rqt_gui_py.plugin import Plugin
 
 from python_qt_binding.QtCore import Qt
-from python_qt_binding.QtGui import QInputDialog
+from python_qt_binding.QtWidgets import QInputDialog
 
 from rqt_launchtree.launchtree_widget import LaunchtreeWidget
 
@@ -29,7 +29,7 @@ class LaunchtreePlugin(Plugin):
     def save_settings(self, plugin_settings, instance_settings):
         instance_settings.set_value('editor', self._widget.editor)
         _curr_pkg = self._widget.package_select.currentText()
-        rospy.logdebug('save_settings) currentIndex={}'.format(_curr_pkg))
+        rclpy.logging.get_logger('LaunchtreePlugin').debug(f'save_settings) currentIndex={_curr_pkg}')
         instance_settings.set_value(self._SETTING_LASTPKG, _curr_pkg)
         instance_settings.set_value(self._SETTING_LASTLAUNCHFILE, self._widget.launchfile_select.currentText())
         instance_settings.set_value(self._SETTING_LASTLAUNCHARGS, self._widget.args_input.text())

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-from roslaunch.loader import LoaderContext
+from launch import LaunchDescription
 
-class LaunchtreeContext(LoaderContext):
+class LaunchtreeContext(LaunchDescription):
 
 	def __init__(self, ns, filename, config=None, parent=None, params=None, env_args=None, resolve_dict=False, include_resolve_dict=None, arg_names=None):
 		super(LaunchtreeContext, self).__init__(ns, filename, parent, params, env_args, resolve_dict, include_resolve_dict, arg_names)
